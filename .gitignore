@@ -1,0 +1,13 @@
+*.sw[pmno]
+*.hdf
+*.h5
+*.n5
+*.ipynb
+*.pyc
+*.egg-info
+*.dat
+*.lock
+.coverage
+__pycache__
+build
+dist

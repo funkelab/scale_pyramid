@@ -1,0 +1,3 @@
+daisy
+zarr
+scikit-image
