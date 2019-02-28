@@ -29,7 +29,12 @@ def downscale_block(in_array, out_array, factor, block):
     if n_channels >= 1:
         factor = (1,)*n_channels + factor
 
-    out_data = skimage.measure.block_reduce(in_data, factor, np.mean)
+    #todo: calculate nearest neighbor for uint64 datasets
+    if in_data.dtype == np.uint64:
+        slices = tuple(slice(k//2, None, k) for k in factor)
+        out_data = in_data[slices]
+    else:
+        out_data = skimage.measure.block_reduce(in_data, factor, np.mean)
 
     try:
         out_array[block.write_roi] = out_data
@@ -59,8 +64,9 @@ def downscale(in_array, out_array, factor, write_size):
             factor,
             b),
         read_write_conflict=False,
-        num_workers=40,
-        max_retries=0)
+        num_workers=60,
+        max_retries=0,
+        fit='shrink')
 
 
 def create_scale_pyramide(in_file, in_ds_name, scales, chunk_shape):
