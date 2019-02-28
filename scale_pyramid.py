@@ -29,7 +29,6 @@ def downscale_block(in_array, out_array, factor, block):
     if n_channels >= 1:
         factor = (1,)*n_channels + factor
 
-    #todo: calculate nearest neighbor for uint64 datasets
     if in_data.dtype == np.uint64:
         slices = tuple(slice(k//2, None, k) for k in factor)
         out_data = in_data[slices]
@@ -69,7 +68,7 @@ def downscale(in_array, out_array, factor, write_size):
         fit='shrink')
 
 
-def create_scale_pyramide(in_file, in_ds_name, scales, chunk_shape):
+def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
 
     ds = zarr.open(in_file)
 
@@ -176,4 +175,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_scale_pyramide(args.file, args.ds, args.scales, args.chunk_shape)
+    create_scale_pyramid(args.file, args.ds, args.scales, args.chunk_shape)
