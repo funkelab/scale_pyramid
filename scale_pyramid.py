@@ -11,6 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 prev_makedirs = os.makedirs
+DEFAULT_WORKERS = 60
 
 
 def makedirs(name, mode=0o777, exist_ok=False):
@@ -48,7 +49,7 @@ def downscale_block(in_array, out_array, factor, block):
     return 0
 
 
-def downscale(in_array, out_array, factor, write_size):
+def downscale(in_array, out_array, factor, write_size, workers=DEFAULT_WORKERS):
 
     logger.info("Downsampling by factor %s", factor)
 
@@ -63,13 +64,13 @@ def downscale(in_array, out_array, factor, write_size):
         block_roi,
         process_function=lambda b: downscale_block(in_array, out_array, factor, b),
         read_write_conflict=False,
-        num_workers=60,
+        num_workers=workers,
         max_retries=0,
         fit="shrink",
     )
 
 
-def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
+def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, workers=DEFAULT_WORKERS):
 
     ds = zarr.open(in_file)
 
@@ -107,7 +108,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
     elif prev_array.n_channel_dims == 1:
         num_channels = prev_array.shape[0]
     else:
-        raise RuntimeError("more than one channel not yet implemented, sorry...")
+        raise RuntimeError(">1 channel dimension not yet implemented")
 
     for scale_num, scale in enumerate(scales):
         ndim = chunk_shape.dims()
@@ -115,7 +116,10 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
             if len(scale) == ndim:
                 scale = daisy.Coordinate(scale)
             else:
-                raise ValueError("Scale must be a scalar or list with the same length as the chunk shape")
+                raise ValueError(
+                    "Scale must be a scalar or list "
+                    "with the same length as the chunk shape"
+                )
         except TypeError:
             scale = daisy.Coordinate((scale,) * ndim)
 
@@ -140,34 +144,54 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
             num_channels=num_channels,
         )
 
-        downscale(prev_array, next_array, scale, next_write_size)
+        downscale(prev_array, next_array, scale, next_write_size, workers)
 
         prev_array = next_array
 
 
-if __name__ == "__main__":
+def parse_scales(s):
+    return [parse_chunk(lvl) for lvl in s.split(";")]
 
+
+def parse_chunk(s):
+    try:
+        return int(s)
+    except ValueError:
+        return [int(c.strip()) for c in s.split(",")]
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Create a scale pyramide for a zarr/N5 container."
     )
 
-    parser.add_argument("--file", "-f", type=str, help="The input container")
-    parser.add_argument("--ds", "-d", type=str, help="The name of the dataset")
+    parser.add_argument("file", help="The input container")
+    parser.add_argument("array", help="The path to the array (/dataset) within the container")
     parser.add_argument(
-        "--scales",
-        "-s",
-        nargs="*",
-        type=int,
-        required=True,
-        help="The downscaling factor between scales",
+        "scales",
+        type=parse_scales,
+        help=(
+            "Scale levels. Each scale level is separated by colons, "
+            "and can be given as a single integer (for isotropic scaling) "
+            "or a comma-separated list of integers for anisotropic. "
+            "e.g. '2,2,1;2,2,1;2;2;2;2;2'"
+        )
     )
     parser.add_argument(
-        "--chunk_shape",
+        "--chunk-shape",
         "-c",
-        nargs="*",
+        type=parse_chunk,
+        help=(
+            "The size of a chunk in voxels in the output. "
+            "By default, re-uses the source chunking."
+        ),
+    )
+    parser.add_argument(
+        "--workers",
+        "-w",
         type=int,
-        default=None,
-        help="The size of a chunk in voxels",
+        default=DEFAULT_WORKERS,
+        help=f"Number of workers, default {DEFAULT_WORKERS}"
     )
     parser.add_argument("--log-file", "-l", help="Log file path (appends if exists)")
 
@@ -178,4 +202,4 @@ if __name__ == "__main__":
 
     logging.basicConfig(**log_kwargs)
 
-    create_scale_pyramid(args.file, args.ds, args.scales, args.chunk_shape)
+    create_scale_pyramid(args.file, args.ds, args.scales, args.chunk_shape, args.workers)
