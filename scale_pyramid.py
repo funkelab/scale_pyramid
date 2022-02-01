@@ -110,11 +110,14 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
         raise RuntimeError("more than one channel not yet implemented, sorry...")
 
     for scale_num, scale in enumerate(scales):
-
+        ndim = chunk_shape.dims()
         try:
-            scale = daisy.Coordinate(scale)
-        except Exception:
-            scale = daisy.Coordinate((scale,) * chunk_shape.dims())
+            if len(scale) == ndim:
+                scale = daisy.Coordinate(scale)
+            else:
+                raise ValueError("Scale must be a scalar or list with the same length as the chunk shape")
+        except TypeError:
+            scale = daisy.Coordinate((scale,) * ndim)
 
         next_voxel_size = prev_array.voxel_size * scale
         next_total_roi = prev_array.roi.snap_to_grid(next_voxel_size, mode="grow")
