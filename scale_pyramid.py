@@ -70,7 +70,9 @@ def downscale(in_array, out_array, factor, write_size, workers=DEFAULT_WORKERS):
     )
 
 
-def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, workers=DEFAULT_WORKERS):
+def create_scale_pyramid(
+    in_file, in_ds_name, scales, chunk_shape, workers=DEFAULT_WORKERS
+):
 
     ds = zarr.open(in_file)
 
@@ -166,7 +168,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("file", help="The input container")
-    parser.add_argument("array", help="The path to the array (/dataset) within the container")
+    parser.add_argument(
+        "array", help="The path to the array (/dataset) within the container"
+    )
     parser.add_argument(
         "scales",
         type=parse_scales,
@@ -175,7 +179,7 @@ if __name__ == "__main__":
             "and can be given as a single integer (for isotropic scaling) "
             "or a comma-separated list of integers for anisotropic. "
             "e.g. '2,2,1;2,2,1;2;2;2;2;2'"
-        )
+        ),
     )
     parser.add_argument(
         "--chunk-shape",
@@ -191,7 +195,7 @@ if __name__ == "__main__":
         "-w",
         type=int,
         default=DEFAULT_WORKERS,
-        help=f"Number of workers, default {DEFAULT_WORKERS}"
+        help=f"Number of workers, default {DEFAULT_WORKERS}",
     )
     parser.add_argument("--log-file", "-l", help="Log file path (appends if exists)")
 
@@ -202,4 +206,6 @@ if __name__ == "__main__":
 
     logging.basicConfig(**log_kwargs)
 
-    create_scale_pyramid(args.file, args.ds, args.scales, args.chunk_shape, args.workers)
+    create_scale_pyramid(
+        args.file, args.ds, args.scales, args.chunk_shape, args.workers
+    )
