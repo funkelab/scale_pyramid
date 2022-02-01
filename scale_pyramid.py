@@ -6,6 +6,9 @@ import zarr
 
 # monkey-patch os.mkdirs, due to bug in zarr
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 prev_makedirs = os.makedirs
 
@@ -39,7 +42,7 @@ def downscale_block(in_array, out_array, factor, block):
     try:
         out_array[block.write_roi] = out_data
     except Exception:
-        print("Failed to write to %s" % block.write_roi)
+        logger.critical("Failed to write to %s", block.write_roi)
         raise
 
     return 0
@@ -47,12 +50,12 @@ def downscale_block(in_array, out_array, factor, block):
 
 def downscale(in_array, out_array, factor, write_size):
 
-    print("Downsampling by factor %s" % (factor,))
+    logger.info("Downsampling by factor %s", factor)
 
     dims = in_array.roi.dims()
     block_roi = daisy.Roi((0,) * dims, write_size)
 
-    print("Processing ROI %s with blocks %s" % (out_array.roi, block_roi))
+    logger.info("Processing ROI %s with blocks %s", out_array.roi, block_roi)
 
     daisy.run_blockwise(
         out_array.roi,
@@ -80,7 +83,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
 
         ds_name = in_ds_name + "/s0"
 
-        print("Moving %s to %s" % (in_ds_name, ds_name))
+        logger.info("Moving %s to %s", in_ds_name, ds_name)
         ds.store.rename(in_ds_name, in_ds_name + "__tmp")
         ds.store.rename(in_ds_name + "__tmp", ds_name)
 
@@ -89,7 +92,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
         ds_name = in_ds_name
         in_ds_name = in_ds_name[:-3]
 
-    print("Scaling %s by a factor of %s" % (in_file, scales))
+    logger.info("Scaling %s by a factor of %s", in_file, scales)
 
     prev_array = daisy.open_ds(in_file, ds_name)
 
@@ -97,7 +100,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
         chunk_shape = daisy.Coordinate(chunk_shape)
     else:
         chunk_shape = daisy.Coordinate(prev_array.data.chunks)
-        print("Reusing chunk shape of %s for new datasets" % (chunk_shape,))
+        logger.info("Reusing chunk shape of %s for new datasets" % (chunk_shape,))
 
     if prev_array.n_channel_dims == 0:
         num_channels = 1
@@ -117,12 +120,12 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
         next_total_roi = prev_array.roi.snap_to_grid(next_voxel_size, mode="grow")
         next_write_size = chunk_shape * next_voxel_size
 
-        print("Next voxel size: %s" % (next_voxel_size,))
-        print("Next total ROI: %s" % next_total_roi)
-        print("Next chunk size: %s" % (next_write_size,))
+        logger.info("Next voxel size: %s", next_voxel_size)
+        logger.info("Next total ROI: %s", next_total_roi)
+        logger.info("Next chunk size: %s", next_write_size)
 
         next_ds_name = in_ds_name + "/s" + str(scale_num + 1)
-        print("Preparing %s" % (next_ds_name,))
+        logger.info("Preparing %s", next_ds_name)
 
         next_array = daisy.prepare_ds(
             in_file,
@@ -163,7 +166,13 @@ if __name__ == "__main__":
         default=None,
         help="The size of a chunk in voxels",
     )
+    parser.add_argument("--log-file", "-l", help="Log file path (appends if exists)")
 
     args = parser.parse_args()
+    log_kwargs = {"level": logging.INFO}
+    if args.log_file:
+        log_kwargs["filename"] = args.log_file
+
+    logging.basicConfig(**log_kwargs)
 
     create_scale_pyramid(args.file, args.ds, args.scales, args.chunk_shape)
