@@ -102,7 +102,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'
         print("Reusing chunk shape of %s for new datasets" % (chunk_shape,))
 
     if prev_array.n_channel_dims == 0:
-        num_channels = 1
+        num_channels = None
     elif prev_array.n_channel_dims == 1:
         num_channels = prev_array.shape[0]
     else:
