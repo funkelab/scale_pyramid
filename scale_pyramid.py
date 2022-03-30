@@ -141,7 +141,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'
             voxel_size=next_voxel_size,
             write_size=next_write_size,
             dtype=prev_array.dtype,
-            num_channels=num_channels
+            num_channels=num_channels,
             compressor=compressor)
 
         downscale(prev_array, next_array, scale, next_write_size)
@@ -178,13 +178,6 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="The size of a chunk in voxels")
-    parser.add_argument(
-        '--compressor',
-        '-C',
-        nargs='*',
-        type=dict,
-        default={'id': 'zlib', 'level': 5},
-        help="The compressor as a dict where 'id' is compressor name and 'level' is compression level")
 
     args = parser.parse_args()
 
