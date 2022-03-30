@@ -48,12 +48,13 @@ def downscale(in_array, out_array, factor, write_size):
 
     print("Downsampling by factor %s" % (factor,))
 
-    dims = in_array.roi.dims()
+    dims = in_array.roi.dims
     block_roi = daisy.Roi((0,)*dims, write_size)
 
     print("Processing ROI %s with blocks %s" % (out_array.roi, block_roi))
 
-    daisy.run_blockwise(
+    downscale_task=daisy.Task(
+        'downscale',
         out_array.roi,
         block_roi,
         block_roi,
@@ -66,9 +67,21 @@ def downscale(in_array, out_array, factor, write_size):
         num_workers=60,
         max_retries=0,
         fit='shrink')
+    
+    done = daisy.run_blockwise([downscale_task])
 
+    if not done:
+        raise RuntimeError("daisy.Task failed for (at least) one block")
 
-def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
+def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'id': 'zstd', 'level': 5}):
+
+    print("\nCreating scale pyramid...")
+    print("\n  Input arguments:")
+    print("    in_file       : ", in_file)
+    print("    in_ds_name    : ", in_ds_name)
+    print("    scales        : ", str(scales))
+    print("    chunk_shape   : ", str(chunk_shape))
+    print("    compressor    : ", str(compressor))
 
     ds = zarr.open(in_file)
 
@@ -102,7 +115,7 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
         print("Reusing chunk shape of %s for new datasets" % (chunk_shape,))
 
     if prev_array.n_channel_dims == 0:
-        num_channels = 1
+        num_channels = None
     elif prev_array.n_channel_dims == 1:
         num_channels = prev_array.shape[0]
     else:
@@ -136,7 +149,8 @@ def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape):
             voxel_size=next_voxel_size,
             write_size=next_write_size,
             dtype=prev_array.dtype,
-            num_channels=num_channels)
+            num_channels=num_channels,
+            compressor=compressor)
 
         downscale(prev_array, next_array, scale, next_write_size)
 
