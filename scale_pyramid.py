@@ -53,7 +53,8 @@ def downscale(in_array, out_array, factor, write_size):
 
     print("Processing ROI %s with blocks %s" % (out_array.roi, block_roi))
 
-    daisy.run_blockwise(
+    downscale_task=daisy.Task(
+        'downscale',
         out_array.roi,
         block_roi,
         block_roi,
@@ -66,7 +67,11 @@ def downscale(in_array, out_array, factor, write_size):
         num_workers=60,
         max_retries=0,
         fit='shrink')
+    
+    done = daisy.run_blockwise([downscale_task])
 
+    if not done:
+        raise RuntimeError("daisy.Task failed for (at least) one block")
 
 def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'id': 'zlib', 'level': 5}):
 
