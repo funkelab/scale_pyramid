@@ -73,7 +73,7 @@ def downscale(in_array, out_array, factor, write_size):
     if not done:
         raise RuntimeError("daisy.Task failed for (at least) one block")
 
-def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'id': 'zlib', 'level': 5}):
+def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'id': 'zstd', 'level': 5}):
 
     print("\nCreating scale pyramid...")
     print("\n  Input arguments:")
