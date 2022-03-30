@@ -76,7 +76,7 @@ def downscale(in_array, out_array, factor, write_size):
 def create_scale_pyramid(in_file, in_ds_name, scales, chunk_shape, compressor={'id': 'zlib', 'level': 5}):
 
     print("\nCreating scale pyramid...")
-    print("\n  Input parameters:")
+    print("\n  Input arguments:")
     print("    in_file       : ", in_file)
     print("    in_ds_name    : ", in_ds_name)
     print("    scales        : ", str(scales))
