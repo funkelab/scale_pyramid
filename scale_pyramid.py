@@ -48,7 +48,7 @@ def downscale(in_array, out_array, factor, write_size):
 
     print("Downsampling by factor %s" % (factor,))
 
-    dims = in_array.roi.dims()
+    dims = in_array.roi.dims
     block_roi = daisy.Roi((0,)*dims, write_size)
 
     print("Processing ROI %s with blocks %s" % (out_array.roi, block_roi))
